@@ -1,0 +1,176 @@
+{
+    "devices": [
+        {
+            "name": "Internet Connection",
+            "cmd": "ping -n 2 8.8.8.8",
+            "regex": ".*Reply from.*"
+        },
+        {
+            "name": "Minty Mini",
+            "cmd": "ping -n 2 192.168.4.100",
+            "regex": ".*Reply from.*",
+            "children": [
+                {
+                    "name": "Minty Mini mDNS",
+                    "cmd": "ping -n 2 openmediavault.local",
+                    "regex": ".*Reply from.*"
+                },
+                {
+                    "name": "openmediavault Web",
+                    "cmd": "get http://192.168.4.100",
+                    "regex": ".*200.*"
+                }
+            ]
+        },
+        {
+            "name": "Raspberry Pi 4",
+            "cmd": "ping -n 2 192.168.4.27",
+            "regex": ".*Reply from.*",
+            "children": [
+                {
+                    "name": "Raspberry Pi 4 mDNS",
+                    "cmd": "ping -n 2 nextcloud.local",
+                    "regex": ".*Reply from.*"
+                },
+                {
+                    "name": "Nextcloud Web",
+                    "cmd": "get https://192.168.4.27",
+                    "regex": ".*200.*"
+                },
+                {
+                    "name": "Homebridge@1 Service",
+                    "cmd": "ssh pi@192.168.4.27 systemctl is-active homebridge@1",
+                    "regex": ".*active.*"
+                },
+                {
+                    "name": "Homebridge@1 Web",
+                    "cmd": "get http://192.168.4.27:8080",
+                    "regex": ".*200.*"
+                },
+                {
+                    "name": "Homebridge@2 Service",
+                    "cmd": "ssh pi@192.168.4.27 systemctl is-active homebridge@2",
+                    "regex": ".*active.*"
+                },
+                {
+                    "name": "Homebridge@2 Web",
+                    "cmd": "get http://192.168.4.27:8081",
+                    "regex": ".*200.*"
+                }
+            ]
+        },
+        {
+            "name": "OctoPrint Pi",
+            "cmd": "ping -n 2 192.168.4.88",
+            "regex": ".*Reply from.*",
+            "children": [
+                {
+                    "name": "OctoPrint mDNS",
+                    "cmd": "ping -n 2 octopi.local",
+                    "regex": ".*Reply from.*"
+                },
+                {
+                    "name": "OctoPrint Web",
+                    "cmd": "get http://192.168.4.88",
+                    "regex": ".*200.*"
+                }
+            ]
+        },
+        {
+            "name": "Hyperion Pi",
+            "cmd": "ping -n 2 192.168.4.91",
+            "regex": ".*Reply from.*",
+            "children": [
+                {
+                    "name": "Hyperion mDNS",
+                    "cmd": "ping -n 2 hyperion.local",
+                    "regex": ".*Reply from.*"
+                },
+                {
+                    "name": "Hyperion Web",
+                    "cmd": "get http://192.168.4.91:8090/",
+                    "regex": ".*200.*"
+                }
+            ]
+        },
+        {
+            "name": "PiCam",
+            "cmd": "ping -n 2 192.168.4.23",
+            "regex": ".*Reply from.*",
+            "children": [
+                {
+                    "name": "PiCam mDNS",
+                    "cmd": "ping -n 2 picam.local",
+                    "regex": ".*Reply from.*"
+                }
+            ]
+        },
+        {
+            "name": "DHT11",
+            "cmd": "ping -n 2 192.168.4.58",
+            "regex": ".*Reply from.*",
+            "children": [
+                {
+                    "name": "DHT11 mDNS",
+                    "cmd": "ping -n 2 dht11.local",
+                    "regex": ".*Reply from.*"
+                },
+                {
+                    "name": "DHT11 Web",
+                    "cmd": "get http://192.168.4.58",
+                    "regex": ".*200.*"
+                }
+            ]
+        },
+        {
+            "name": "TV Arduino",
+            "cmd": "ping -n 2 192.168.4.89",
+            "regex": ".*Reply from.*",
+            "children": [
+                {
+                    "name": "TV Arduino mDNS",
+                    "cmd": "ping -n 2 tv.local",
+                    "regex": ".*Reply from.*"
+                },
+                {
+                    "name": "TV Arduino Web",
+                    "cmd": "get http://192.168.4.89",
+                    "regex": ".*200.*"
+                }
+            ]
+        },
+        {
+            "name": "Salt",
+            "cmd": "ping -n 2 192.168.4.21",
+            "regex": ".*Reply from.*",
+            "children": [
+                {
+                    "name": "Salt mDNS",
+                    "cmd": "ping -n 2 salt.local",
+                    "regex": ".*Reply from.*"
+                },
+                {
+                    "name": "Salt Web",
+                    "cmd": "get http://192.168.4.21",
+                    "regex": ".*200.*"
+                }
+            ]
+        },
+        {
+            "name": "Desk Christmas Lights",
+            "cmd": "get http://192.168.4.26/",
+            "regex": ".*200.*"
+        },
+        {
+            "name": "Shelf Christmas Lights",
+            "cmd": "get http://192.168.4.76/",
+            "regex": ".*200.*"
+        },
+        {
+            "name": "Wax Warmer",
+            "cmd": "get http://192.168.4.24/",
+            "regex": ".*200.*"
+        }
+
+    ]
+}
