@@ -1,5 +1,3 @@
-from device import Device
-
 import requests
 import sys
 import os
@@ -8,13 +6,14 @@ import time
 import threading
 import argparse
 import random
+from datetime import datetime
+from device import Device
+import config
 
 from requests.packages.urllib3.exceptions import InsecureRequestWarning
 requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 script_path = os.path.dirname(os.path.realpath(__file__))
-config_name = "config.json"
-full_config = os.path.join(script_path, config_name)
 args = {}
 good_responses = [
 	"Everything looks good",
@@ -23,59 +22,85 @@ good_responses = [
 	"Looks good"
 ]
 
-def SaveDefaultConfig():
-
-	with open(full_config, 'w') as config:
-		data = {
-			"devices": [
-				{
-					"name": "example_device",
-					"cmd": "GET",
-					"cmd_args": "192.168.4.10",
-					"regex": r"success",
-				}
-			]
-		}
-		config.write(json.dumps(data, indent=4))
-
-def LoadConfig():
-	if not args.siri:
-		print("Loading config...")
-	if not os.path.exists(full_config):
-		print("Config not found. Creating now...")
-		SaveDefaultConfig()
-		return "retry"
-
-	try:
-		with open(full_config, 'r') as config:
-			data = config.read()
-			return json.loads(data)
-	except Exception as e:
-		print("Error reading file:", str(e))
-		return None
 
 def TestDevices(devices):
+	use_threads = args.multithreaded
+	full_output = args.full_output
+	show_failed_only = args.show_failed
+
 	threads = []
 	for device in devices:
-		if not args.siri:
-			print("Testing " + device.name + " with " + device.cmd.upper() + "... ")
-		#device.Test()
-		thread = threading.Thread(target=device.Test)
-		thread.start()
-		threads.append(thread)
+		if not device.enabled:
+			#print("Skipping", device.name)
+			continue
 
-	for thread in threads:
-		thread.join()
+		print(f"Testing {device.name}... ")
+
+		if use_threads:	
+			thread = threading.Thread(target=device.Test)
+			thread.start()
+			threads.append(thread)
+		else:
+			device.Test(False)
+			device.PrintResults(full_output)
+			print()
+
+	if use_threads:
+		for thread in threads:
+			thread.join()
+
+		print()
+		for device in devices:
+			if not device.enabled:
+				continue
+			if show_failed_only and device.was_successful:
+				continue
+
+			device.PrintResults(full_output)
+
+def CheckDevicesForChange(devices):
+	for device in devices:
+		device.CheckForChange()
+
+def SetAllDevicesEnabled(data, enabled):
+	for i in range(len(data['devices'])):
+			data['devices'][i]["enabled"] = enabled
+	config.SaveConfig(data)
+	print(f"{'Enabled' if enabled else 'Disabled'} all devices")
+
 
 def main():
 	global args
 	parser = argparse.ArgumentParser("Check availability of devices on the network")
-	parser.add_argument('--siri', action="store_true")
+	parser.add_argument('--output',									help="file to output JSON results to")
+	parser.add_argument('--prev',									help="file to read previous JSON output from")
+	parser.add_argument('--siri',									help="file to output Siri response to")
+	parser.add_argument('--time', 			action="store_true",	help="include current time in Siri output")
+	parser.add_argument('--multithreaded',	action="store_true", 	help="use threads for tests (Recommended)")
+	parser.add_argument('--inky', 			action="store_true", 	help="output results to INKY PHAT")
+	parser.add_argument('--disable_all',	action="store_true",	help="disable all devices in the config file")
+	parser.add_argument('--enable_all',  	action="store_true",	help="enable all devices in the config file")
+	parser.add_argument('--full_output', 	action="store_true",	help="show more output for results when running the test")
+	parser.add_argument('--show_failed', 	action="store_true",	help="only print results for failed devices")
+	parser.add_argument('--verbose',	 	action="store_true",	help="print more stuff")
 	args = parser.parse_args()
 
-	data = LoadConfig()
-	if not args.siri:
-		print(data)
+	output_file = args.output
+	prev_file = args.prev
+	siri_output_file = args.siri
+	inky = args.inky
+
+
+	data = config.LoadConfig()
+
+	if args.disable_all:
+		SetAllDevicesEnabled(data, False)
+		return
+	if args.enable_all:
+		SetAllDevicesEnabled(data, True)
+		return
+
+	prev_output = config.LoadJSONFile(prev_file)
 
 	if not data:
 		return
@@ -83,43 +108,82 @@ def main():
 		main()
 
 	devices = []
+
 	for d in data.get('devices', []):
-		device = Device(d)
-		devices.extend(device.GetAllDevices())
+		device_name = d.get('name', '')
+		prev_results = prev_output.get(device_name, {})
+		devices.append(Device(d, prev_results))
 
-	if not args.siri:
-		print()
 
+	print("Testing devices...")
+	print()
 	TestDevices(devices)
 
-	if not args.siri:
-		print()
+	if prev_file:
+		CheckDevicesForChange(devices)
 
-	if not args.siri:
+	if output_file:
+		config.WriteOutput(output_file, devices)
+	if siri_output_file:
+		config.WriteSiriOutput(siri_output_file, devices, args.time)
+
+	if inky:
+		from inky.auto import auto
+		from PIL import Image, ImageFont, ImageDraw
+		from font_fredoka_one import FredokaOne
+
+		inky_display = auto(verbose=True)
+		inky_display.set_border(inky_display.BLACK)
+
+		flip = False
+		if flip:
+			inky_display.h_flip = True
+			inky_display.v_flip = True
+
+		img = Image.new("P", (inky_display.WIDTH, inky_display.HEIGHT))
+		draw = ImageDraw.Draw(img)
+		font = ImageFont.truetype(FredokaOne, 14)
+
+		h = font.getsize("H")[1]
+		x, y = (0, 0)
+		max_w = max([font.getsize(device.inky_display_name)[0] for device in devices]) + 1
+
+		if args.time:
+			draw.text((x, y), f"{time.strftime('%-I:%M')}", inky_display.BLACK, font)
+			y += h
+
 		for device in devices:
-			if not device.parent:
-				device.PrintResults()
-				print()
+			if not device.enabled:
+				continue
 
-	if args.siri:
-		offline = []
-		for device in devices:
-			offline += device.GetAllOffline()
-
-		offline = list(set(offline))
-		output = "Okay. "
-		if offline:
-			output += ', '.join(offline)
-			if len(offline) > 1:
-				index = output.rfind(',')
-				output = output[:index+1] + " and" + output[index+1:]
-				output += " are not responding"
+			#x = (inky_display.WIDTH / 2) - (w / 2)
+			#y = (inky_display.HEIGHT / 2) - (h / 2)
+			if device.was_successful:
+				draw.text((x, y), device.inky_display_name, inky_display.BLACK, font)
 			else:
-				output += " is not responding"
-		else:
-			output += random.choice(good_responses)
+				draw.text((x, y), device.inky_display_name, inky_display.RED, font)
 
-		print(output)
+			y += h
+			if y + h > inky_display.HEIGHT:
+				y = 0
+				x += max_w
+
+
+		inky_display.set_image(img)
+		inky_display.show()
+
+
 
 if __name__=="__main__":
 	main()
+
+
+
+
+
+
+
+
+
+
+
