@@ -80,7 +80,7 @@ class Device:
 		]
 		self.onChange = device_dict.get('onChange', [])
 		self.prev_results = prev_results
-		
+
 		#print("New device! name:", self.name, "commands:", len(self.commands))
 
 	@property

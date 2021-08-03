@@ -1,12 +1,8 @@
 import requests
-import sys
 import os
-import json
 import time
 import threading
 import argparse
-import random
-from datetime import datetime
 from device import Device
 import config
 
@@ -15,12 +11,6 @@ requests.packages.urllib3.disable_warnings(InsecureRequestWarning)
 
 script_path = os.path.dirname(os.path.realpath(__file__))
 args = {}
-good_responses = [
-	"Everything looks good",
-	"Everyone is responding",
-	"No problems found",
-	"Looks good"
-]
 
 
 def TestDevices(devices):
@@ -36,7 +26,7 @@ def TestDevices(devices):
 
 		print(f"Testing {device.name}... ")
 
-		if use_threads:	
+		if use_threads:
 			thread = threading.Thread(target=device.Test)
 			thread.start()
 			threads.append(thread)

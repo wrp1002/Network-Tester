@@ -1,6 +1,7 @@
 import os
 import json
 from datetime import datetime
+import random
 
 script_path = os.path.dirname(os.path.realpath(__file__))
 config_name = "config.json"
@@ -97,8 +98,14 @@ def WriteOutput(output_file, devices):
 		file.write(json.dumps(results, indent=4))
 
 def WriteSiriOutput(siri_output_file, devices, show_time):
+	good_responses = [
+		"Everything looks good",
+		"Everyone is responding",
+		"No problems found",
+	]
 	partially_failed = []
 	fully_failed = []
+
 	for device in devices:
 		if not device.enabled:
 			continue
@@ -113,22 +120,24 @@ def WriteSiriOutput(siri_output_file, devices, show_time):
 	output = "Okay. "
 	if show_time:
 		time = datetime.now()
-		output += f"From {time.strftime('%-I:%M %p')}. "
+		output += f"From {time.strftime('%-I:%M %p')}, "
 
 	if partially_failed or fully_failed:
-		output += ', '.join(partially_failed)
-		index = output.rfind(',')
-		if index != -1:
-			output = output[:index+1] + " and" + output[index+1:]
-		output += " partially failed.. "
-
-		output += ', '.join(fully_failed)
-		if len(fully_failed) > 1:
+		if partially_failed:
+			output += ', '.join(partially_failed)
 			index = output.rfind(',')
-			output = output[:index+1] + " and" + output[index+1:]
-			output += " are not responding"
-		else:
-			output += " is not responding"
+			if index != -1:
+				output = output[:index+1] + " and" + output[index+1:]
+			output += " partially failed.. "
+
+		if fully_failed:
+			output += ', '.join(fully_failed)
+			if len(fully_failed) > 1:
+				index = output.rfind(',')
+				output = output[:index+1] + " and" + output[index+1:]
+				output += " are not responding"
+			else:
+				output += " is not responding"
 	else:
 		output += random.choice(good_responses)
 
